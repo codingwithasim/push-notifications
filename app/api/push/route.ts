@@ -1,6 +1,7 @@
 import { SubscriptionPayload } from "@/components/Notification";
 import { NextResponse } from "next/server";
 import webpush from "web-push"
+import { PushSubscription } from "web-push";
 
 webpush.setVapidDetails(
         "mailto:" + process.env.VAPID_EMAIL,
@@ -12,8 +13,8 @@ export async function POST(req: Request) {
     const body: SubscriptionPayload = await req.json()
     const subscription : PushSubscription = body.subscription
 
-    const title = body.title.trim().length ? body.title : "New message"
-    const description = body.description.trim().length ? body.description : "This is a body of the message"
+    const title = body.title.trim().length ? body.title : "Thanks for subscribing!"
+    const description = body.description.trim().length ? body.description : "It's great to have you here."
 
     const payload = {
         title,
@@ -21,21 +22,9 @@ export async function POST(req: Request) {
     }
 
     await webpush.sendNotification(
-        toWebPushSuscription(subscription),
+        subscription,
         JSON.stringify(payload))
     .catch(err => console.error(err.message))
 
     return NextResponse.json({ok: true})
-}
-
-
-function toWebPushSuscription(sub: PushSubscription){
-    return {
-        endpoint: sub.endpoint,
-        expirationTime: sub.expirationTime,
-        keys: {
-            p256dh: sub.getKey("p256dh")!.toString(),
-            auth: sub.getKey("auth")!.toString(),
-        }
-    }
 }

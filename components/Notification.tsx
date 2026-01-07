@@ -6,6 +6,7 @@ import { Button } from "./ui/button";
 import usePushNotifications from "@/hooks/usePushNotifications";
 import { BellIcon } from "lucide-react";
 import Link from "next/link";
+import { PushSubscription } from "web-push";
 
 export type SubscriptionPayload = {
     title: string
@@ -64,6 +65,19 @@ const data = [
     }
 ];
 
+function arrayBufferToBase64Url(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+
+  return btoa(binary)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+}
+
 export default function NotificationsPage(){
 
     const [title, setTitle] = useState("")
@@ -80,14 +94,26 @@ export default function NotificationsPage(){
     const sendPushNotification = async () => {
         if(!subscription) return;
 
+        const sub: PushSubscription = {
+            endpoint: subscription.endpoint,
+            expirationTime: subscription.expirationTime,
+            keys: {
+                p256dh: arrayBufferToBase64Url(subscription.getKey("p256dh")!),
+                auth: arrayBufferToBase64Url(subscription.getKey("auth")!)
+            }
+        };
+
         const payload: SubscriptionPayload = {
-            subscription,
+            subscription: sub,
             title,
             description
         }
         
         await fetch("/api/push/", {
             method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
             body: JSON.stringify(payload)
         }).catch(err => console.log(err.message))
     }
